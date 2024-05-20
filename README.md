@@ -19,4 +19,8 @@ https://developers.google.com/custom-search/v1/overview - Click this link to qui
 You can also refer to - https://joeyism.medium.com/custom-google-search-api-fbbafe4711eb blog to understand how to get the API key as well as the CSE ID.
 
 Once you have them, use them under the 
+ ```
+    api_key = ""
+    cse_id = ""
+ ```
 
