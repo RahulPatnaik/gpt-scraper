@@ -7,8 +7,8 @@ from llama_index.core.memory import ChatMemoryBuffer
 
 # Function to search Google for relevant URLs based on the user query
 def search_google(query):
-    api_key = "AIzaSyCClUbP0_OWfCqG-uSnOQEVslOVnJOpLS8"
-    cse_id = "84ab08697df3d4ff9"
+    api_key = ""
+    cse_id = ""
     
     service = build("customsearch", "v1", developerKey=api_key)
     result = service.cse().list(q=query, cx=cse_id).execute()
