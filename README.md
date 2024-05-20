@@ -23,4 +23,4 @@ Once you have them, use them under the
     api_key = ""
     cse_id = ""
  ```
-
+#### Typing '''exit''' in the terminal will exit the chat.
