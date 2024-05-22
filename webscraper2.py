@@ -1,3 +1,5 @@
+import os
+import json
 import requests
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
@@ -7,8 +9,8 @@ from llama_index.core.memory import ChatMemoryBuffer
 
 # Function to search Google for relevant URLs based on the user query
 def search_google(query):
-    api_key = ""
-    cse_id = ""
+    api_key = "AIzaSyCClUbP0_OWfCqG-uSnOQEVslOVnJOpLS8"
+    cse_id = "84ab08697df3d4ff9"
     
     service = build("customsearch", "v1", developerKey=api_key)
     result = service.cse().list(q=query, cx=cse_id).execute()
@@ -32,21 +34,32 @@ def create_document_from_text(text, title="Web Document"):
     return Document(text_content=text, metadata={"title": title})
 
 # Function to update knowledge base with scraped content
-def update_knowledge_base(chatbot_data, urls):
+def update_knowledge_base(chatbot_data, urls, data_dir="data"):
     scraped_data = []
     for url in urls:
         content = scrape_webpage(url)
         if content:  # Only add content if scraping was successful
             document = create_document_from_text(content, title=f"Document from {url}")
             scraped_data.append(document)
+            # Save the document to the directory
+            doc_id = f"document_{len(chatbot_data) + len(scraped_data)}.json"
+            with open(os.path.join(data_dir, doc_id), 'w') as f:
+                json.dump({"text_content": content, "metadata": {"title": f"Document from {url}"}}, f)
     updated_data = chatbot_data + scraped_data
     return updated_data
 
 # Load data from directory
-initial_data = SimpleDirectoryReader(input_dir="data").load_data()
+def load_data_from_directory(data_dir="data"):
+    files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file.endswith('.json')]
+    documents = []
+    for file in files:
+        with open(file, 'r') as f:
+            doc = json.load(f)
+            documents.append(Document(text_content=doc["text_content"], metadata=doc["metadata"]))
+    return documents
 
 # Initialize chatbot data
-chatbot_data = initial_data
+chatbot_data = load_data_from_directory()
 
 # Setup the LLM and memory
 llm = OpenAI(model="gpt-3.5-turbo")
@@ -67,7 +80,7 @@ chat_engine = index.as_chat_engine(
     ),
 )
 
-# Chat loop
+# Function to handle chat with user
 def chat_with_user():
     global chatbot_data, chat_engine
     
@@ -76,43 +89,48 @@ def chat_with_user():
         if message.lower() == 'exit':
             break
         
-        # Search Google for relevant URLs based on the user query
-        search_results = search_google(message)
-        urls = [result['link'] for result in search_results[:3]]  # Limit to top 3 URLs
+        # Try to answer the query using the built-in knowledge base
+        response = chat_engine.stream_chat(message)
+        response_text = ''.join([token for token in response.response_gen])
+        print("GPT Response:")
+        print(response_text)
         
-        if urls:
-            print("Retrieved URLs from Google search:", urls)
+        # Check if the response is sufficient or not
+        if "I'm sorry" in response_text:  # Adjust the heuristic as needed
+            print("Searching the web for more information...")
+            # Perform a Google search
+            search_results = search_google(message)
+            urls = [result['link'] for result in search_results[:3]]  # Limit to top 3 URLs
             
-            # Update knowledge base with scraped content
-            chatbot_data = update_knowledge_base(chatbot_data, urls)
-            
-            # Clear the URLs list to save memory
-            urls = []
-            
-            # Recreate index with updated knowledge base
-            index = VectorStoreIndex.from_documents(chatbot_data)
-            
-            # Recreate chat engine with updated index
-            chat_engine = index.as_chat_engine(
-                chat_mode="condense_plus_context",
-                memory=memory,
-                llm=llm,
-                context_prompt=(
-                    "You are a chatbot, able to have normal interactions, as well as talk"
-                    " about various topics."
-                    " Here are the relevant documents for the context:\n"
-                    "{context_str}"
-                    "\nInstruction: Use the previous chat history, or the context above, to interact and help the user."
-                ),
-            )
-            
-            print("Knowledge base updated with scraped content.")
-        else:
-            print("No relevant URLs found.")
-        
-        response = chat_engine.chat(message)
-        print(response)
-        print('\n')
+            if urls:
+                # Update knowledge base with scraped content
+                chatbot_data = update_knowledge_base(chatbot_data, urls)
+                
+                # Recreate index with updated knowledge base
+                index = VectorStoreIndex.from_documents(chatbot_data)
+                
+                # Recreate chat engine with updated index
+                chat_engine = index.as_chat_engine(
+                    chat_mode="condense_plus_context",
+                    memory=memory,
+                    llm=llm,
+                    context_prompt=(
+                        "You are a chatbot, able to have normal interactions, as well as talk"
+                        " about various topics."
+                        " Here are the relevant documents for the context:\n"
+                        "{context_str}"
+                        "\nInstruction: Use the previous chat history, or the context above, to interact and help the user."
+                    ),
+                )
+                
+                print("Knowledge base updated with scraped content.")
+                # Get a new response after updating the knowledge base
+                response = chat_engine.stream_chat(message)
+                response_text = ''.join([token for token in response.response_gen])
+                print("Updated GPT Response:")
+                print(response_text)
+            else:
+                print("No relevant URLs found.")
 
 if __name__ == "__main__":
     chat_with_user()
