@@ -8,7 +8,7 @@
 
 Note: all these models have the RAG functionality.
 
-The ```data.txt``` has to be stored in a folder named ```data``` within this repo to work. -  Do this change before running the code
+The ```data.txt``` has to be stored in a folder named ```data``` within this repo to work.
 
 ## .env:
 Lastly create a ```.env``` file in the working directory and add the ```OPENAI_API_KEY = <YOUR_API>``` in it.
