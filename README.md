@@ -3,7 +3,7 @@
    ```pip install -r requirements.txt``` in the terminal.
 ## The three types of chatbots:
 - ```webscraper.py``` - running this file in the terminal, will allow you to use a chatbot that will ask you for a yes/no after every output. If the answer is not satisfactory, then the user can simply reply no, in which case the webscraper component will retrieve urls to use as a resource for its reply.
-- ```webscraper2.py``` - this is a chatbot that will always webscrape before replying to the user.
+- ```webscraper2.py``` - this is a chatbot that will webscrape when it does not find the answer in the GPT database, and then store it in a documents.json so it can answer better next time without scraping the web.
 - ```basicllm.py``` - this is a simple RAG chatbot which can work with textfiles or other supported filetypes.
 
 Note: all these models have the RAG functionality.
