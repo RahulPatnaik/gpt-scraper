@@ -76,17 +76,7 @@ def chat_with_user():
         if message.lower() == 'exit':
             break
         
-        # Try to answer the query using the built-in knowledge base
-        response = chat_engine.chat(message)
-        print("GPT Response:", response)
-        
-        # Ask the user if the response was satisfactory
-        user_feedback = input("Was this answer helpful? (yes/no)\n")
-        
-        if user_feedback.lower() == 'yes':
-            continue
-        
-        # If the response was not satisfactory, proceed with web scraping
+        # Search Google for relevant URLs based on the user query
         search_results = search_google(message)
         urls = [result['link'] for result in search_results[:3]]  # Limit to top 3 URLs
         
@@ -117,11 +107,12 @@ def chat_with_user():
             )
             
             print("Knowledge base updated with scraped content.")
-            # Get a new response after updating the knowledge base
-            response = chat_engine.chat(message)
-            print("Updated GPT Response:", response)
         else:
             print("No relevant URLs found.")
+        
+        response = chat_engine.chat(message)
+        print(response)
+        print('\n')
 
 if __name__ == "__main__":
     chat_with_user()
