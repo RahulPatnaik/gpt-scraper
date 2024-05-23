@@ -11,7 +11,6 @@ from llama_index.core.memory import ChatMemoryBuffer
 def search_google(query):
     api_key = ""
     cse_id = ""
-    
     service = build("customsearch", "v1", developerKey=api_key)
     result = service.cse().list(q=query, cx=cse_id).execute()
     return result['items']
@@ -19,7 +18,7 @@ def search_google(query):
 # Function to scrape webpage and extract text
 def scrape_webpage(url):
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=30)
         response.raise_for_status()  # Raises HTTPError for bad responses
         soup = BeautifulSoup(response.content, 'html.parser')
         paragraphs = soup.find_all('p')
@@ -80,7 +79,7 @@ chat_engine = index.as_chat_engine(
     ),
 )
 
-# Function to handle chat with user
+# Chat loop
 def chat_with_user():
     global chatbot_data, chat_engine
     
@@ -91,46 +90,50 @@ def chat_with_user():
         
         # Try to answer the query using the built-in knowledge base
         response = chat_engine.stream_chat(message)
-        response_text = ''.join([token for token in response.response_gen])
         print("GPT Response:")
-        print(response_text)
+        for token in response.response_gen:
+                print(token, end='')
         
-        # Check if the response is sufficient or not
-        if "I'm sorry" in response_text:  # Adjust the heuristic as needed
-            print("Searching the web for more information...")
-            # Perform a Google search
-            search_results = search_google(message)
-            urls = [result['link'] for result in search_results[:3]]  # Limit to top 3 URLs
+        # Ask the user if the response was satisfactory
+        user_feedback = input("\nWas this answer helpful? (yes/no)\n")
+        
+        if user_feedback.lower() == 'yes':
+            continue
+        
+        # If the response was not satisfactory, proceed with web scraping
+        search_results = search_google(message)
+        urls = [result['link'] for result in search_results[:3]]  # Limit to top 3 URLs
+        
+        if urls:
+            # Update knowledge base with scraped content
+            chatbot_data = update_knowledge_base(chatbot_data, urls)
             
-            if urls:
-                # Update knowledge base with scraped content
-                chatbot_data = update_knowledge_base(chatbot_data, urls)
-                
-                # Recreate index with updated knowledge base
-                index = VectorStoreIndex.from_documents(chatbot_data)
-                
-                # Recreate chat engine with updated index
-                chat_engine = index.as_chat_engine(
-                    chat_mode="condense_plus_context",
-                    memory=memory,
-                    llm=llm,
-                    context_prompt=(
-                        "You are a chatbot, able to have normal interactions, as well as talk"
-                        " about various topics."
-                        " Here are the relevant documents for the context:\n"
-                        "{context_str}"
-                        "\nInstruction: Use the previous chat history, or the context above, to interact and help the user."
-                    ),
-                )
-                
-                print("Knowledge base updated with scraped content.")
-                # Get a new response after updating the knowledge base
-                response = chat_engine.stream_chat(message)
-                response_text = ''.join([token for token in response.response_gen])
-                print("Updated GPT Response:")
-                print(response_text)
-            else:
-                print("No relevant URLs found.")
+            # Recreate index with updated knowledge base
+            index = VectorStoreIndex.from_documents(chatbot_data)
+            
+            # Recreate chat engine with updated index
+            chat_engine = index.as_chat_engine(
+                chat_mode="condense_plus_context",
+                memory=memory,
+                llm=llm,
+                context_prompt=(
+                    "You are a chatbot, able to have normal interactions, as well as talk"
+                    " about various topics."
+                    " Here are the relevant documents for the context:\n"
+                    "{context_str}"
+                    "\nInstruction: Use the previous chat history, or the context above, to interact and help the user."
+                ),
+            )
+            
+            print("Knowledge base updated with scraped content.")
+            # Get a new response after updating the knowledge base
+            response = chat_engine.stream_chat(message)
+            print("Updated GPT Response:")
+            for token in response.response_gen:
+                print(token, end='')
+            print("\n")    
+        else:
+            print("No relevant URLs found.")
 
 if __name__ == "__main__":
     chat_with_user()
