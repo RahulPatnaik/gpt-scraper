@@ -13,6 +13,9 @@
 3. Create a ``` .env ``` file in the same working directory and enter the ```OPENAI_API_KEY = <YOUR_API>``` in it.
 4. ``` search = SerpAPIWrapper(serpapi_api_key='<API KEY>') ``` enter the SerpAPI key here for the web searching feature.
 
+## SerpAPI: 
+You can get your SerpAPI key from this website : https://serpapi.com/
+
 ## Customization:
 ```
     chat_engine = index.as_chat_engine(
