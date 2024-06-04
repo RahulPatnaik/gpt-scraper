@@ -9,7 +9,7 @@
 
 ## Installation for gpt.py (latest one): 
 1. ``` pip install -r requirements.txt ``` in the terminal.
-2. Ensure that the working dircetory has a folder named ``` data ```.
+2. Ensure that the working directory has a folder named ``` data ```.
 3. Create a ``` .env ``` file in the same working directory and enter the ```OPENAI_API_KEY = <YOUR_API>``` in it.
 4. ``` search = SerpAPIWrapper(serpapi_api_key='<API KEY>') ``` enter the SerpAPI key here for the web searching feature.
 
